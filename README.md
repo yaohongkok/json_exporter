@@ -60,6 +60,18 @@ modules:
         active: 1      # static value
         count: '{.count}' # dynamic value
         boolean: '{.some_boolean}'
+      
+    - name: example_convert
+      type: object
+      path: '{.values[0,1]}'
+      labels:
+        state: '{.state}'
+      values:
+        state: '{.state}'
+      valueconverter:
+        '{.state}': #convert value 'state' into a number
+          active: 1
+          inactive: 2
 
     headers:
       X-Dummy: my-test-header
@@ -70,6 +82,8 @@ Serving HTTP on 0.0.0.0 port 8000 ...
 $ ./json_exporter --config.file examples/config.yml &
 
 $ curl "http://localhost:7979/probe?module=default&target=http://localhost:8000/examples/data.json" | grep ^example
+example_convert_state{state="ACTIVE"} 1
+example_convert_state{state="INACTIVE"} 2
 example_global_value{environment="beta",location="planet-mars"} 1234
 example_value_active{environment="beta",id="id-A"} 1
 example_value_active{environment="beta",id="id-C"} 1
@@ -82,6 +96,10 @@ example_value_count{environment="beta",id="id-C"} 3
 $ docker run --rm -it -p 9090:9090 -v $PWD/examples/prometheus.yml:/etc/prometheus/prometheus.yml --network host prom/prometheus
 ```
 Then head over to http://localhost:9090/graph?g0.range_input=1h&g0.expr=example_value_active&g0.tab=1 or http://localhost:9090/targets to check the scraped metrics or the targets.
+
+## Using custom timestamps
+
+This exporter allows you to use a field of the metric as the (unix/epoch) timestamp for the data as an int64. However, this may lead to unexpected behaviour, as the prometheus implements a [Staleness](https://prometheus.io/docs/prometheus/latest/querying/basics/#staleness) mechanism. Including timestamps in metrics disabled this staleness handling and can make data visible for longer than expected.
 
 ## Exposing metrics through HTTPS
 
