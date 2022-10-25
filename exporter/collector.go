@@ -16,6 +16,8 @@ package exporter
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
+	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -31,12 +33,14 @@ type JSONMetricCollector struct {
 }
 
 type JSONMetric struct {
-	Desc            *prometheus.Desc
-	Type            config.ScrapeType
-	KeyJSONPath     string
-	ValueJSONPath   string
-	LabelsJSONPaths []string
-	ValueType       prometheus.ValueType
+	Desc                   *prometheus.Desc
+	Type                   config.ScrapeType
+	KeyJSONPath            string
+	ValueJSONPath          string
+	LabelsJSONPaths        []string
+	ValueType              prometheus.ValueType
+	ValueConverter         config.ValueConverterType
+	EpochTimestampJSONPath string
 }
 
 func (mc JSONMetricCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -56,13 +60,13 @@ func (mc JSONMetricCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			if floatValue, err := SanitizeValue(value); err == nil {
-
-				ch <- prometheus.MustNewConstMetric(
+				metric := prometheus.MustNewConstMetric(
 					m.Desc,
 					m.ValueType,
 					floatValue,
 					extractLabels(mc.Logger, mc.Data, m.LabelsJSONPaths)...,
 				)
+				ch <- timestampMetric(mc.Logger, m, mc.Data, metric)
 			} else {
 				level.Error(mc.Logger).Log("msg", "Failed to convert extracted value to float64", "path", m.KeyJSONPath, "value", value, "err", err, "metric", m.Desc)
 				continue
@@ -84,18 +88,22 @@ func (mc JSONMetricCollector) Collect(ch chan<- prometheus.Metric) {
 						continue
 					}
 					value, err := extractValue(mc.Logger, jdata, m.ValueJSONPath, false)
+
 					if err != nil {
 						level.Error(mc.Logger).Log("msg", "Failed to extract value for metric", "path", m.ValueJSONPath, "err", err, "metric", m.Desc)
 						continue
 					}
 
+					value = convertValueIfNeeded(m, value)
+
 					if floatValue, err := SanitizeValue(value); err == nil {
-						ch <- prometheus.MustNewConstMetric(
+						metric := prometheus.MustNewConstMetric(
 							m.Desc,
 							m.ValueType,
 							floatValue,
 							extractLabels(mc.Logger, jdata, m.LabelsJSONPaths)...,
 						)
+						ch <- timestampMetric(mc.Logger, m, jdata, metric)
 					} else {
 						level.Error(mc.Logger).Log("msg", "Failed to convert extracted value to float64", "path", m.ValueJSONPath, "value", value, "err", err, "metric", m.Desc)
 						continue
@@ -156,4 +164,35 @@ func extractLabels(logger log.Logger, data []byte, paths []string) []string {
 		}
 	}
 	return labels
+}
+
+// Returns the conversion of the dynamic value- if it exists in the ValueConverter configuration
+func convertValueIfNeeded(m JSONMetric, value string) string {
+	if m.ValueConverter != nil {
+		if valueMappings, hasPathKey := m.ValueConverter[m.ValueJSONPath]; hasPathKey {
+			value = strings.ToLower(value)
+
+			if _, hasValueKey := valueMappings[value]; hasValueKey {
+				value = valueMappings[value]
+			}
+		}
+	}
+	return value
+}
+func timestampMetric(logger log.Logger, m JSONMetric, data []byte, pm prometheus.Metric) prometheus.Metric {
+	if m.EpochTimestampJSONPath == "" {
+		return pm
+	}
+	ts, err := extractValue(logger, data, m.EpochTimestampJSONPath, false)
+	if err != nil {
+		level.Error(logger).Log("msg", "Failed to extract timestamp for metric", "path", m.KeyJSONPath, "err", err, "metric", m.Desc)
+		return pm
+	}
+	epochTime, err := SanitizeIntValue(ts)
+	if err != nil {
+		level.Error(logger).Log("msg", "Failed to parse timestamp for metric", "path", m.KeyJSONPath, "err", err, "metric", m.Desc)
+		return pm
+	}
+	timestamp := time.UnixMilli(epochTime)
+	return prometheus.NewMetricWithTimestamp(timestamp, pm)
 }

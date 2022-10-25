@@ -22,14 +22,18 @@ import (
 
 // Metric contains values that define a metric
 type Metric struct {
-	Name      string
-	Path      string
-	Labels    map[string]string
-	Type      ScrapeType
-	ValueType ValueType
-	Help      string
-	Values    map[string]string
+	Name           string
+	Path           string
+	Labels         map[string]string
+	Type           ScrapeType
+	ValueType      ValueType
+	EpochTimestamp string
+	Help           string
+	Values         map[string]string
+	ValueConverter ValueConverterType
 }
+
+type ValueConverterType map[string]map[string]string
 
 type ScrapeType string
 
