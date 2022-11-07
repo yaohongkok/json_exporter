@@ -34,13 +34,14 @@ type JSONMetricCollector struct {
 }
 
 type JSONMetric struct {
-	Desc            *prometheus.Desc
-	Type            config.ScrapeType
-	KeyJSONPath     string
-	ValueJSONPath   string
-	LabelsJSONPaths []string
-	ValueType       prometheus.ValueType
-	ValueConverter  config.ValueConverterType
+	Desc                   *prometheus.Desc
+	Type                   config.ScrapeType
+	KeyJSONPath            string
+	ValueJSONPath          string
+	LabelsJSONPaths        []string
+	ValueType              prometheus.ValueType
+	ValueConverter         config.ValueConverterType
+	EpochTimestampJSONPath string
 }
 
 func (mc JSONMetricCollector) Describe(ch chan<- *prometheus.Desc) {
