@@ -2,9 +2,11 @@ json_exporter
 ========================
 [![CircleCI](https://circleci.com/gh/prometheus-community/json_exporter.svg?style=svg)](https://circleci.com/gh/prometheus-community/json_exporter)
 
+(This is a fork meant to address some limitations presented by the original repo. It is not actively maintained. Supports string-to-value conversion and root-level querying for labels.)
+
 A [prometheus](https://prometheus.io/) exporter which scrapes remote JSON by JSONPath.
-For checking the JSONPath configuration supported by this exporter please head over [here](https://kubernetes.io/docs/reference/kubectl/jsonpath/).  
-Checkout the [examples](/examples) directory for sample exporter configuration, prometheus configuration and expected data format.  
+For checking the JSONPath configuration supported by this exporter please head over [here](https://kubernetes.io/docs/reference/kubectl/jsonpath/).
+Checkout the [examples](/examples) directory for sample exporter configuration, prometheus configuration and expected data format.
 
 #### :warning: The configuration syntax has changed in version `0.3.x`. If you are migrating from `0.2.x`, then please use the above mentioned JSONPath guide for correct configuration syntax.
 
@@ -60,7 +62,7 @@ modules:
         active: 1      # static value
         count: '{.count}' # dynamic value
         boolean: '{.some_boolean}'
-      
+
     - name: example_convert
       type: object
       path: '{.values[0,1]}'
