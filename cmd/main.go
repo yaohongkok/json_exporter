@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -82,8 +83,8 @@ func Run() {
 }
 
 func probeHandler(w http.ResponseWriter, r *http.Request, logger log.Logger, config config.Config) {
-
-	ctx, cancel := context.WithCancel(r.Context())
+	var timeoutSeconds time.Duration = getTimeoutSeconds(config, logger)
+	ctx, cancel := context.WithTimeout(r.Context(), timeoutSeconds)
 	defer cancel()
 	r = r.WithContext(ctx)
 
@@ -120,10 +121,27 @@ func probeHandler(w http.ResponseWriter, r *http.Request, logger log.Logger, con
 		return
 	}
 
+	if !json.Valid(data) {
+		http.Error(w, "Failed to fetch JSON response. TARGET: "+target+", Fetched invalid response: \n\n"+string(data), http.StatusServiceUnavailable)
+		return
+	}
+
 	jsonMetricCollector.Data = data
 
 	registry.MustRegister(jsonMetricCollector)
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
+}
 
+func getTimeoutSeconds(config config.Config, logger log.Logger) time.Duration {
+	var timeoutSeconds time.Duration = config.Request.TimeoutSeconds * time.Second
+
+	// Default to be 30s
+	if timeoutSeconds.Seconds() < 1.0 {
+		timeoutSeconds = 30 * time.Second
+	}
+
+	level.Debug(logger).Log("timeout", timeoutSeconds)
+
+	return timeoutSeconds
 }
