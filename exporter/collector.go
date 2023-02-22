@@ -44,7 +44,11 @@ type JSONMetric struct {
 	EpochTimestampJSONPath string
 }
 
+var jsonExporterStatusDesc *prometheus.Desc = prometheus.NewDesc("json_exporter_status", "Up/Down Status of JSON Exporter. Should always be 0.", nil, nil)
+
 func (mc JSONMetricCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- jsonExporterStatusDesc
+
 	for _, m := range mc.JSONMetrics {
 		ch <- m.Desc
 	}
@@ -52,6 +56,12 @@ func (mc JSONMetricCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (mc JSONMetricCollector) Collect(ch chan<- prometheus.Metric) {
 	var rootData []byte = mc.Data
+
+	ch <- prometheus.MustNewConstMetric(
+		jsonExporterStatusDesc,
+		prometheus.GaugeValue,
+		0,
+	)
 
 	for _, m := range mc.JSONMetrics {
 		switch m.Type {
@@ -64,7 +74,6 @@ func (mc JSONMetricCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			if floatValue, err := SanitizeValue(value); err == nil {
-
 				ch <- prometheus.MustNewConstMetric(
 					m.Desc,
 					m.ValueType,
