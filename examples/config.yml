@@ -64,3 +64,6 @@ modules:
 
     # Accepted status codes for this probe. Defaults to 2xx.
     # valid_status_codes: [ <int>, ... | default = 2xx ]
+
+request:
+  timeoutSeconds: 20

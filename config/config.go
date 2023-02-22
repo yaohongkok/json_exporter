@@ -15,6 +15,7 @@ package config
 
 import (
 	"io/ioutil"
+	"time"
 
 	pconfig "github.com/prometheus/common/config"
 	"gopkg.in/yaml.v2"
@@ -53,6 +54,7 @@ const (
 // Config contains multiple modules.
 type Config struct {
 	Modules map[string]Module `yaml:"modules"`
+	Request Request           `yaml:"request"`
 }
 
 // Module contains metrics and headers defining a configuration
@@ -67,6 +69,10 @@ type Module struct {
 type Body struct {
 	Content    string `yaml:"content"`
 	Templatize bool   `yaml:"templatize,omitempty"`
+}
+
+type Request struct {
+	TimeoutSeconds time.Duration `yaml:"timeoutSeconds"`
 }
 
 func LoadConfig(configPath string) (Config, error) {
