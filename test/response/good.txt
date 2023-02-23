@@ -13,3 +13,6 @@ example_value_boolean{environment="beta",id="id-C"} 0
 # TYPE example_value_count counter
 example_value_count{environment="beta",id="id-A"} 1
 example_value_count{environment="beta",id="id-C"} 3
+# HELP json_exporter_status Up/Down Status of JSON Exporter. Should always be 0.
+# TYPE json_exporter_status gauge
+json_exporter_status 0

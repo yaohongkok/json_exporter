@@ -15,6 +15,7 @@ package cmd
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -56,6 +57,7 @@ func TestSucceedIfSelfSignedCA(t *testing.T) {
 			}},
 	}
 	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode("{}")
 	}))
 	defer target.Close()
 
@@ -73,6 +75,7 @@ func TestSucceedIfSelfSignedCA(t *testing.T) {
 
 func TestDefaultModule(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode("{}")
 	}))
 	defer target.Close()
 
@@ -114,6 +117,7 @@ func TestDefaultAcceptHeader(t *testing.T) {
 			t.Errorf("Default 'Accept' header mismatch, got %s, expected: %s", got, expected)
 			w.WriteHeader(http.StatusNotAcceptable)
 		}
+		json.NewEncoder(w).Encode("{}")
 	}))
 	defer target.Close()
 
@@ -173,6 +177,8 @@ func TestBasicAuth(t *testing.T) {
 			t.Errorf("BasicAuth mismatch, got: %s, expected: %s", got, expected)
 			w.WriteHeader(http.StatusUnauthorized)
 		}
+
+		json.NewEncoder(w).Encode("{}")
 	}))
 	defer target.Close()
 
@@ -209,6 +215,8 @@ func TestBearerToken(t *testing.T) {
 			t.Errorf("BearerToken mismatch, got: %s, expected: %s", got, expected)
 			w.WriteHeader(http.StatusUnauthorized)
 		}
+
+		json.NewEncoder(w).Encode("{}")
 	}))
 	defer target.Close()
 
@@ -245,6 +253,7 @@ func TestHTTPHeaders(t *testing.T) {
 			}
 		}
 		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode("{}")
 	}))
 	defer target.Close()
 
@@ -309,6 +318,7 @@ func TestBodyPostTemplate(t *testing.T) {
 				t.Errorf("POST request body content mismatch, got: %s, expected: %s", got, expected)
 			}
 			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode("{}")
 		}))
 
 		req := httptest.NewRequest("POST", "http://example.com/foo"+"?module=default&target="+target.URL, strings.NewReader(test.Body.Content))
@@ -402,6 +412,7 @@ func TestBodyPostQuery(t *testing.T) {
 				t.Errorf("POST request body content mismatch (with query params), got: %s, expected: %s", got, expected)
 			}
 			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode("{}")
 		}))
 
 		req := httptest.NewRequest("POST", "http://example.com/foo"+"?module=default&target="+target.URL, strings.NewReader(test.Body.Content))
